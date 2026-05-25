@@ -1,0 +1,29 @@
+{
+  "name": "@shiharu/mcp-remote-ssh",
+  "version": "0.4.0",
+  "description": "SSH MCP server for remote host management",
+  "type": "module",
+  "bin": {
+    "mcp-remote-ssh": "dist/bin/cli.js"
+  },
+  "main": "./dist/bin/cli.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && chmod +x dist/bin/cli.js",
+    "dev": "tsc --watch",
+    "start": "node dist/bin/cli.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/inspector": "^0.21.2",
+    "@modelcontextprotocol/sdk": "^1.11.2",
+    "ssh2": "^1.16.0",
+    "ssh2-sftp-client": "^12.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "@types/ssh2": "^1.15.0",
+    "typescript": "^6.0.3"
+  }
+}
