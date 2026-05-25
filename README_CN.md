@@ -11,7 +11,7 @@ npx @shiharu/mcp-remote-ssh
 | 工具族 | 工具 | 说明 |
 |--------|------|------|
 | `host_*` | `list` `add` `remove` | 主机清单管理，密码只写不回显 |
-| `exec_*` | `session_start` `exec` `close` | 长期 shell session，共享 cwd/env/alias，默认 xtrace |
+| `exec_*` | `session_start` `exec` `close` | 长期 shell session，共享 cwd/env/alias，XML 输出 |
 | `screen_*` | `start` `write` `read` `resize` `interrupt` `close` | tmux 终端 session，支持 TUI（vim/htop），断线可恢复 |
 | `sftp_*` | `upload` `download` | 文件传输 |
 
@@ -105,18 +105,26 @@ SftpManager                     → upload/download (无状态)
 
 - keepalive 10 秒间隔 × 3 次 → 30 秒检测断线
 - Exec Session 断线 → 明确错误 "SSH connection lost, reinitialize with exec_session_start"
-- Screen Session 断线 → tmux session 远端存活，可重连恢复
+- Screen Session 断线 → tmux 绑定 PTY，SSH 断开自动清理
 
 ### Exec Session 模型
 
-每条命令共享 cwd/env/alias 状态。默认 `set -x` (xtrace) + `pipefail`。
+每条命令共享 cwd/env/alias 状态。默认 `pipefail`。
 
 ```
-命令包装: { cd /etc && ls; } 2>&1; echo __END__:$?:$(pwd)
-返回:     stdout, exitCode, cwd (绝对路径)
+Shell:    set -o pipefail
+包装:     { cd /etc && ls; } 2>&1; echo __VIA__:$?:$(pwd)
+输出:     XML-like 文本，原生换行不转义，如：
+          <result status="success" exitCode="0" durationMs="42">
+            <cwd>/etc</cwd>
+            <stdout>
+          <cmd>ls</cmd>
+          cron.d  hosts  resolv.conf
+            </stdout>
+          </result>
 ```
 
-xtrace 默认开启——Agent 怕信息不够，不怕输出多。传 `trace: false` 关闭。
+Trace 模式（默认）：在 stdout 前追加 `<cmd>` 标签做语义隔离。传 `trace: false` 关闭。
 
 ## License
 

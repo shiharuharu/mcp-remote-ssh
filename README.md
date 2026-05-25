@@ -11,7 +11,7 @@ npx @shiharu/mcp-remote-ssh
 | Family | Tools | Description |
 |--------|-------|-------------|
 | `host_*` | `list` `add` `remove` | Host inventory management; passwords are write-only |
-| `exec_*` | `session_start` `exec` `close` | Long-lived shell sessions with shared cwd/env/alias and xtrace by default |
+| `exec_*` | `session_start` `exec` `close` | Long-lived shell sessions with shared cwd/env/alias, XML output |
 | `screen_*` | `start` `write` `read` `resize` `interrupt` `close` | tmux terminal sessions with TUI support (vim/htop) and reconnect capability |
 | `sftp_*` | `upload` `download` | Stateless file transfer |
 
@@ -87,18 +87,27 @@ SftpManager                     → upload/download (stateless)
 
 - 10s interval x 3 missed pings → 30s disconnect detection
 - Exec session disconnect → explicit error: "SSH connection lost, reinitialize with exec_session_start"
-- Screen session disconnect → tmux session stays alive on remote; reconnect to recover
+- Screen session disconnect → tmux bound to PTY, auto-cleanup on SSH drop
 
 ### Exec Session Model
 
-Each command shares cwd/env/alias state. Defaults to `set -x` (xtrace) + `pipefail`.
+Each command shares cwd/env/alias state. Defaults to `pipefail`.
 
 ```
-Command wrapping: { cd /etc && ls; } 2>&1; echo __END__:$?:$(pwd)
-Response:          stdout, exitCode, cwd (absolute path)
+Shell:    set -o pipefail
+Wrapping: { cd /etc && ls; } 2>&1; echo __VIA__:$?:$(pwd)
+Output:   XML-like text with native newlines, e.g.:
+          <result status="success" exitCode="0" durationMs="42">
+            <cwd>/etc</cwd>
+            <stdout>
+          <cmd>ls</cmd>
+          cron.d  hosts  resolv.conf
+            </stdout>
+          </result>
 ```
 
-xtrace is on by default — AI agents prefer more context over less. Pass `trace: false` to disable.
+Trace mode (default): prepends `<cmd>...</cmd>` tag to stdout for semantic isolation.
+Pass `trace: false` to suppress.
 
 ## Development
 
